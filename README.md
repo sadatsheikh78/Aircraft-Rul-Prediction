@@ -1,118 +1,63 @@
-✈️ Aircraft Remaining Useful Life Prediction
+#✈️ Aircraft Remaining Useful Life Prediction
 
-An end-to-end machine learning and deep learning pipeline for predicting the Remaining Useful Life (RUL) of aircraft turbofan engines using multivariate sensor time-series data from the NASA C-MAPSS FD001 dataset.
+End-to-end machine learning and deep learning pipeline for predicting Remaining Useful Life (RUL) of aircraft turbofan engines using the NASA C-MAPSS FD001 dataset.
 
-The project compares an XGBoost regression baseline with a 30-cycle LSTM sequence model and includes leakage-safe validation, official test evaluation, and detailed error analysis.
+The project compares XGBoost with a 30-cycle LSTM model and includes leakage-safe validation, official test evaluation, and error analysis.
 
-🎯 Project Highlights
+#🎯 Highlights
 
-Built a complete RUL prediction pipeline from raw C-MAPSS data to model evaluation.
+Multivariate aircraft sensor time-series analysis
 
-Performed exploratory analysis and removed 7 constant features.
+Engine-level train/validation split
 
-Used engine-level train/validation splitting to reduce temporal data leakage.
+XGBoost regression baseline
 
-Established an XGBoost baseline.
+Temporal feature engineering experiment
 
-Tested explicit temporal feature engineering.
+30-cycle LSTM sequence model
 
-Developed a 30-cycle LSTM for sequential sensor data.
+Official FD001 test evaluation
 
-Evaluated both models on the official FD001 test set.
+Final-cycle and all-cycle error analysis
 
-Performed final-cycle and all-cycle error analysis.
-
-Investigated performance across different RUL ranges.
-
-📊 Dataset
+#📊 Dataset
 
 NASA C-MAPSS FD001
 
-The NASA Commercial Modular Aero-Propulsion System Simulation (C-MAPSS) FD001 dataset contains simulated turbofan engine degradation trajectories recorded over successive operating cycles.
-
-Training Data
-
-Property
-
-Value
+Dataset
 
 Engines
 
-100
-
 Observations
+
+Features
+
+Training
+
+100
 
 20,631
 
-Model input features
-
 18
 
-Missing values
-
-0
-
-Maximum RUL
-
-361 cycles
-
-Mean RUL
-
-~107.81 cycles
-
-Official Test Data
-
-Property
-
-Value
-
-Engines
+Official Test
 
 100
 
-Observations
-
 13,096
-
-Model input features
 
 18
 
-Missing values
+Training RUL ranges from 0 to 361 cycles; official test RUL ranges from 7 to 340 cycles. No missing values were found.
 
-0
+#🔎 EDA
 
-Minimum RUL
+Seven constant features were removed:
 
-7 cycles
+setting_3, sensor_1, sensor_5, sensor_10,
+sensor_16, sensor_18, sensor_19
 
-Maximum RUL
-
-340 cycles
-
-Mean RUL
-
-~141.24 cycles
-
-The original dataset contains operating settings and sensor measurements collected across engine operating cycles.
-
-🔬 Exploratory Data Analysis
-
-Seven constant features were identified and removed:
-
-setting_3
-sensor_1
-sensor_5
-sensor_10
-sensor_16
-sensor_18
-sensor_19
-
-After removing constant features and excluding engine identifiers from the model input, 18 useful features remained.
-
-Sensor–RUL Relationships
-
-Several features showed noticeable correlations with RUL:
+Some of the strongest sensor–RUL correlations were:
 
 Feature
 
@@ -130,71 +75,41 @@ sensor_15
 
 -0.643
 
-sensor_2
+sensor_12
 
--0.606
-
-sensor_17
-
--0.606
-
-sensor_3
-
--0.585
-
-sensor_8
-
--0.564
-
-sensor_13
-
--0.563
-
-sensor_20
-
-0.629
-
-sensor_21
-
-0.636
+0.671
 
 sensor_7
 
 0.657
 
-sensor_12
+sensor_21
 
-0.671
+0.636
 
-These correlations were used for exploratory analysis and feature understanding, not as evidence of causality.
+These correlations were used for exploratory analysis, not as evidence of causality.
 
-🧪 Validation Strategy
+#🧪 Validation Strategy
 
-Because observations belonging to the same engine form a time-dependent sequence, randomly splitting individual rows can introduce information leakage.
+Random row-level splitting can leak information because multiple observations belong to the same engine.
 
-Instead, the internal validation split was performed at the engine level:
+Therefore, validation was performed at the engine level:
 
 100 Engines
-     │
-     ├── 80 Engines → Training
-     │
-     └── 20 Engines → Validation
+├── 80 → Training
+└── 20 → Validation
 
-This keeps validation engines separate from the training engines.
+For the LSTM, StandardScaler was fitted on training engines only.
 
-🌳 Model 1 — XGBoost
+#🌳 XGBoost Baseline
 
-XGBoost was used as the tree-based regression baseline.
+Configuration:
 
-Configuration
-
-n_estimators       = 500
-max_depth          = 6
-learning_rate      = 0.05
-subsample          = 0.8
-colsample_bytree   = 0.8
-objective          = squarederror
-random_state       = 42
+n_estimators = 500
+max_depth = 6
+learning_rate = 0.05
+subsample = 0.8
+colsample_bytree = 0.8
 
 Internal Validation
 
@@ -210,13 +125,9 @@ RMSE
 
 31.542
 
-This baseline provides a reference point for evaluating the sequence-based LSTM model.
+#⏱️ Temporal Feature Experiment
 
-⏱️ Temporal Feature Engineering Experiment
-
-An additional XGBoost experiment was performed to explicitly represent recent sensor history.
-
-For varying sensors, the following features were generated:
+For varying sensors, the project generated:
 
 Previous 5-cycle rolling mean
 
@@ -224,9 +135,7 @@ Previous 5-cycle rolling standard deviation
 
 Cycle-to-cycle change
 
-This expanded the feature set from 18 to 63 features.
-
-Results
+This increased the feature count from 18 to 63.
 
 Model
 
@@ -234,7 +143,7 @@ MAE
 
 RMSE
 
-Baseline XGBoost
+XGBoost
 
 23.957
 
@@ -246,49 +155,27 @@ Temporal XGBoost
 
 32.385
 
-The temporal feature experiment did not improve validation performance in this configuration. It was retained as part of the development process rather than omitted because it produced a less favorable result.
+The temporal feature experiment did not improve validation performance in this configuration and was retained as part of the development process.
 
-🧠 Model 2 — LSTM
+#🧠 LSTM Model
 
-The second model was designed for multivariate time-series data.
+The LSTM uses sequences of 30 operating cycles × 18 features.
 
-Each training sample contains a sequence of 30 operating cycles × 18 input features.
+30 × 18
+   ↓
+LSTM (64)
+   ↓
+Dropout
+   ↓
+LSTM (32)
+   ↓
+Dropout
+   ↓
+Dense (16)
+   ↓
+RUL
 
-Architecture
-
-30 cycles × 18 features
-          │
-      LSTM (64)
-          │
-       Dropout
-          │
-      LSTM (32)
-          │
-       Dropout
-          │
-      Dense (16)
-          │
-      RUL Output
-
-Preprocessing
-
-A StandardScaler was fitted using training engines only and then applied to validation and test data.
-
-This prevents information from validation or test data from influencing the training preprocessing.
-
-Training
-
-The model used:
-
-Adam optimizer
-
-Mean Squared Error loss
-
-MAE monitoring
-
-Early stopping
-
-Model checkpointing
+Training used Adam, MSE loss, MAE monitoring, early stopping, and model checkpointing.
 
 Internal Validation
 
@@ -304,17 +191,9 @@ RMSE
 
 26.048
 
-🏆 Official FD001 Test Evaluation
+#🏆 Official FD001 Test Results
 
-For the primary benchmark, predictions were evaluated at the final observed cycle of each test engine.
-
-This gives:
-
-100 test engines
-      ↓
-100 final-cycle predictions
-
-Final Results
+The primary benchmark uses the final observed cycle of each test engine, producing 100 predictions for 100 engines.
 
 Model
 
@@ -334,24 +213,15 @@ LSTM
 
 23.101
 
-Relative Improvement
+Compared with XGBoost:
 
-Compared with the XGBoost baseline:
+22.34% lower MAE
 
-MAE improvement: 22.34%
+20.51% lower RMSE
 
-RMSE improvement: 20.51%
+#📈 Error Analysis
 
-These figures are based on the project's final-cycle evaluation of the official FD001 test set.
-
-📈 Extended Error Analysis
-
-In addition to the primary final-cycle benchmark, the LSTM was evaluated across all usable test sequences.
-
-Test sequences : 10,196
-Test engines   : 100
-
-All-Cycle Diagnostic Performance
+The LSTM was also evaluated across 10,196 usable test sequences.
 
 Metric
 
@@ -377,9 +247,7 @@ Maximum Absolute Error
 
 160.665
 
-The negative mean error indicates an overall tendency toward underprediction in this diagnostic evaluation.
-
-🔎 Error by Actual RUL
+MAE by Actual RUL
 
 Actual RUL
 
@@ -409,94 +277,30 @@ MAE
 
 83.95
 
-Observation
+The model was more accurate near the end-of-life region, while error increased for engines with very high remaining useful life.
 
-The model is substantially more accurate when the engine is closer to the end-of-life region.
+#🔐 Leakage Prevention
 
-Prediction error increases for engines with very high remaining useful life, suggesting that subtle degradation patterns during earlier lifecycle stages are harder to distinguish from the available sensor information.
+Engine-level train/validation split
 
-🔬 Error Analysis Included
+Training-only scaler fitting
 
-The project includes analysis of:
+Separate official test evaluation
 
-Prediction error distribution
+Final-cycle benchmark for primary comparison
 
-Actual vs. predicted RUL
+#🛠️ Tech Stack
 
-Error by RUL range
+Python · Pandas · NumPy · Scikit-learn · XGBoost · TensorFlow/Keras · LSTM · Matplotlib · Seaborn · Joblib
 
-Engine-level MAE
+##📁 Project Structure
 
-Highest-error engines
-
-The purpose is to understand where the model performs well and where it struggles rather than relying on a single aggregate metric.
-
-🔐 Leakage Prevention
-
-Several measures were used to reduce data leakage:
-
-Engine-Level Splitting
-
-Training and validation engines were kept separate.
-
-Training-Only Scaling
-
-The LSTM scaler was fitted only on training data.
-
-Separate Official Test Evaluation
-
-The official test set was evaluated after model development.
-
-Final-Cycle Benchmark
-
-The primary model comparison uses the final observed cycle from each test engine.
-
-🛠️ Technology Stack
-
-Programming
-
-Python
-
-Data Processing
-
-Pandas
-
-NumPy
-
-Machine Learning
-
-Scikit-learn
-
-XGBoost
-
-Deep Learning
-
-TensorFlow / Keras
-
-LSTM
-
-Visualization
-
-Matplotlib
-
-Seaborn
-
-Model Persistence
-
-Joblib
-
-📁 Project Structure
-
-aircraft-rul-prediction/
-│
+Aircraft-Rul-Prediction/
 ├── data/
 │   ├── raw/
 │   └── processed/
-│
 ├── models/
-│
 ├── results/
-│
 ├── src/
 │   ├── prepare_data.py
 │   ├── prepare_test_data.py
@@ -509,138 +313,52 @@ aircraft-rul-prediction/
 │   ├── final_cycle_evaluation.py
 │   ├── error_analysis.py
 │   └── model_comparison.py
-│
 ├── README.md
 ├── requirements.txt
 └── .gitignore
 
-Raw C-MAPSS data, trained model binaries, generated prediction files, and plots are excluded from version control through .gitignore.
+Raw data, trained models, generated CSVs, and plots are excluded from Git through .gitignore.
 
-🚀 Running the Project
-
-1. Clone the repository
+#🚀 Run
 
 git clone https://github.com/sadatsheikh78/Aircraft-Rul-Prediction.git
 cd Aircraft-Rul-Prediction
-
-2. Install dependencies
-
 pip install -r requirements.txt
 
-3. Prepare training data
-
 python src/prepare_data.py
-
-4. Run exploratory analysis
-
 python src/eda.py
-
-5. Train the XGBoost baseline
-
 python src/train_xgboost.py
-
-6. Generate temporal features
-
 python src/feature_engineering.py
-
-7. Train the temporal XGBoost experiment
-
 python src/train_xgboost_features.py
-
-8. Train the LSTM
-
 python src/train_lstm.py
-
-9. Prepare official test data
-
 python src/prepare_test_data.py
-
-10. Evaluate models on the official test set
-
 python src/evaluate_test_models.py
-
-11. Run final-cycle evaluation
-
 python src/final_cycle_evaluation.py
-
-12. Run error analysis
-
 python src/error_analysis.py
 
 ⚠️ Limitations
 
-This project is a research and portfolio prototype based on the NASA C-MAPSS FD001 simulation dataset.
+This is a research and portfolio prototype based on the NASA C-MAPSS FD001 simulation dataset.
 
-It should not be interpreted as a certified aircraft safety system or a production aircraft monitoring system.
-
-The project:
-
-Does not use live aircraft telemetry.
-
-Does not provide real-time aircraft health monitoring.
-
-Is evaluated on a simulated dataset.
-
-May show different performance on other datasets, operating conditions, or engine populations.
+It does not use live aircraft telemetry, provide real-time aircraft monitoring, or represent a certified aircraft safety system.
 
 🔮 Future Improvements
 
-Potential extensions include:
+Transformer/attention-based time-series models
 
-Attention-based sequence models
-
-Transformer architectures for time-series prediction
-
-Remaining-life uncertainty estimation
+Uncertainty estimation
 
 Evaluation on FD002, FD003, and FD004
 
 Hyperparameter optimization
 
-SHAP-based model explainability
-
-Real-time sensor-stream simulation
+SHAP explainability
 
 Interactive predictive-maintenance dashboard
 
-📌 Key Takeaway
-
-This project demonstrates an end-to-end predictive-maintenance workflow using multivariate aircraft engine sensor time-series data.
-
-Primary Official FD001 Benchmark
-
-Model
-
-MAE
-
-RMSE
-
-XGBoost
-
-21.098
-
-29.063
-
-LSTM
-
-16.385
-
-23.101
-
-The final-cycle evaluation showed lower MAE and RMSE for the LSTM compared with the XGBoost baseline on this FD001 test setup.
-
-The error analysis also showed that prediction accuracy was strongest near the end-of-life region and decreased for engines with very high remaining useful life.
-
-👨‍💻 Author
+##👨‍💻 Author
 
 Sadat Sheikh
-
 B.Tech — Artificial Intelligence & Data Science
 
-Machine Learning · Data Science · Python · SQL
-
-Project Focus
-
-Predictive Maintenance · Time-Series Machine Learning · Deep Learning · Aircraft Engine RUL Prediction
-
-⭐ If you find this project useful, consider giving the repository a star.
+Focus: Machine Learning · Data Science · Python · SQL · Predictive Maintenance
